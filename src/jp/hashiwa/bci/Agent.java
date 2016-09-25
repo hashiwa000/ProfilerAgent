@@ -8,6 +8,7 @@ import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -20,7 +21,11 @@ import static jdk.internal.org.objectweb.asm.Opcodes.ASM5;
  */
 public class Agent {
   public static void premain(String agentArgs, Instrumentation instrumentation) {
-    instrumentation.addTransformer(new Transformer(".*xxx$"));
+//    System.out.println(agentArgs);
+    if (agentArgs != null) {
+      List<String> targetMethods = Arrays.asList(agentArgs.split(","));
+      instrumentation.addTransformer(new Transformer(targetMethods));
+    }
   }
 
   private static class Transformer implements ClassFileTransformer {
@@ -31,10 +36,10 @@ public class Agent {
             )
             .map(Pattern::compile)
             .collect(Collectors.toList());
-    private String methodName;
+    private List<String> targetMethods;
 
-    Transformer(String methodName) {
-      this.methodName = methodName;
+    Transformer(List<String> targetMethods) {
+      this.targetMethods = targetMethods;
     }
 
     @Override
@@ -45,7 +50,7 @@ public class Agent {
       if (canTransform(s)) {
         try {
           ClassWriter cw = new ClassWriter(0);
-          ClassVisitor cv = new PrintStackTraceAdapter(ASM5, cw, this.methodName);
+          ClassVisitor cv = new PrintStackTraceAdapter(ASM5, cw, this.targetMethods);
           ClassReader cr = new ClassReader(bytes);
           cr.accept(cv, ClassReader.EXPAND_FRAMES);
           return cw.toByteArray();
