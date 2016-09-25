@@ -1,0 +1,2 @@
+Premain-Class: jp.hashiwa.bci.Agent
+Can-Redefine-Classes: true
